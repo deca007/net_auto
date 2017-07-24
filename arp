@@ -1,0 +1,73 @@
+import paramiko
+import time
+import re
+
+def disable_paging(remote_conn):
+#   '''Disable paging on a Cisco router'''
+        remote_conn.send("terminal length 0\n")
+        time.sleep(1)
+
+        # Clear the buffer on the screen
+        outputclear = remote_conn.recv(1000)
+        return outputclear
+
+ip_address = "172.16.22.10"
+username = "admin"
+password = "cisco"
+
+#DICTIONARY WITH IP AS KEY AND NULL VALUES TO WHICH MAC WILL BE ADDED LATER
+endhosts = {"172.16.22.1": "", "172.16.22.2": "", "172.16.22.3": "", "172.16.22.4": ""}
+
+print(endhosts["172.16.22.1"])
+
+ssh_client = paramiko.SSHClient()
+ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+ssh_client.connect(hostname=ip_address, username=username, password=password)
+
+print "Successful connection", ip_address
+
+remote_connection = ssh_client.invoke_shell()
+disable_paging(remote_connection)
+remote_connection.send("\n")
+remote_connection.send("show ip arp\n")
+time.sleep(1)
+
+arpoutput = remote_connection.recv(65535).splitlines()
+for line in arpoutput:
+        arpentry = re.search("(\w+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+)\s+(\w+.\w+.\w+)\s+(\w+)\s+(\S+)", line)
+        if arpentry:
+                for host in endhosts:
+                        if arpentry.group(2) == host:
+                                mac = arpentry.group(4)
+                                endhosts[host] = [mac]           # THIS LINE ADDS MAC ENTRY TO DICTIONARY VALUE FOR EACH HOST
+
+
+#PRINTS A DICTIONARY OF IP TO MAC MAPPING
+print(endhosts)
+#
+remote_connection.send("\n")
+remote_connection.send("show mac address\n")
+time.sleep(1)
+
+macoutput = remote_connection.recv(65535).splitlines()
+for line in macoutput:
+        macentry = re.search("\s+(\d+)\s+(\w+\.\w+\.\w+)\s+(\w+)\s+(\w+/\w+)", line)
+        if macentry:
+                for host in endhosts:
+                        if endhosts[host]:                                                                                                                                                       # THIS LINE CHECKS IF IP EXISTS IN ARP TABLE
+                                if macentry.group(2) == endhosts[host][0]:
+                                        interface = macentry.group(4)
+                                        endhosts[host].append(interface)                                                                                  
+                                   # THE ABOVE LINE APPENDS SW-PORT ENTRY TO DICTIONARY VALUE FOR EACH HOST
+
+
+
+# # WRITES A FILE WITH MAC AND PORT DETAILS OF EACH END HOST IP
+with open("portdetails", "w") as portdetails:
+        for host in endhosts:
+                if endhosts[host]:
+                        portdetails.write("Port details for " + host + "\n" + endhosts[host][0] + " : " + endhosts[host][1] + "\n" * 2)
+
+
+#
+ssh_client.close()
