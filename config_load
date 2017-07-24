@@ -1,0 +1,91 @@
+##   THIS SCRIPT WAS WRITTEN TO LOAD CONFIGURATION ON DEVICES...
+##   .. BASED ON THE INE LAB I WAS PRACTICING.
+##   WITH SLIGHT MODIFICATION, IT CAN BE USED TO LOAD CONFIGURATION IN PRODUCTION AS WELL.
+##   THIS IS ASSUMING THAT THE CONFIGURATIONS ARE PRESENT IN A DIRECTORY WITH PROPER NAMING CONVENTION SUCH AS R1_startup-config, R2_startup-config etc
+
+#!/usr/bin/env python
+from netmiko import ConnectHandler
+user = "admin"
+password = "cisco"
+R1 = {
+        'device_type': 'cisco_ios',
+        'ip': '20.0.0.1',
+        'username': user,
+        'password': password,
+}
+R2 = {
+        'device_type': 'cisco_ios',
+        'ip': '20.0.0.2',
+        'username': user,
+        'password': password,
+}
+R3 = {
+        'device_type': 'cisco_ios',
+        'ip': '20.0.0.3',
+        'username': user,
+        'password': password,
+}
+R4 = {
+        'device_type': 'cisco_ios',
+        'ip': '20.0.0.4',
+        'username': user,
+        'password': password,
+}
+R5 = {
+        'device_type': 'cisco_ios',
+        'ip': '20.0.0.5',
+        'username': user,
+        'password': password,
+}
+R6 = {
+        'device_type': 'cisco_ios',
+        'ip': '20.0.0.6',
+        'username': user,
+        'password': password,
+}
+R7 = {
+        'device_type': 'cisco_ios',
+        'ip': '20.0.0.7',
+        'username': user,
+        'password': password,
+}
+R8 = {
+        'device_type': 'cisco_ios',
+        'ip': '20.0.0.8',
+        'username': user,
+        'password': password,
+}
+R9 = {
+        'device_type': 'cisco_ios',
+        'ip': '20.0.0.9',
+        'username': user,
+        'password': password,
+}
+R10 = {
+        'device_type': 'cisco_ios',
+        'ip': '20.0.0.10',
+        'username': user,
+        'password': password,
+}
+lab_name = raw_input("Please enter the name of the lab: ")
+
+all_devices = [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10]
+for a_device in all_devices:
+        net_connect = ConnectHandler(**a_device)
+  
+# BELOW LINE GETS THE DEVICE PROMPT AND READS EVERYTHING UPTO '#', WHICH BASICALLY GIVES THE hostname
+        hostname = str(net_connect.find_prompt())[:-1]
+
+# BELOW COMMANDS USES THE lab_name FROM ABOVE, BROWSES TO THAT FOLDER AND LOADS EACH CONFIG FILE INTO A LIST AND THEN SENDS THAT TO THE DEVICE USING THE NAME a_device
+
+        with open("~/Documents/AT_Labs/" + lab_name + "/" + a_device + "_startup-config", "r") as config:
+                configlines = config.read().splitlines()
+                config_commands = configlines
+                output = net_connect.send_config_set(config_commands)
+
+# net_connect.send_config_set TAKES IN ARGUMENTS AS A LIST.
+# OPTIONALLY YOU CAN ALSO USE net_connect.send_config_from_file(arguments) TO SEND ENTIRE FILE TO THE DEVICE AS CONFIG
+
+# OPTIONALLY PRINT THE OUTPUT OF THE DEVICE BEING CONFIGURED TO CHECK FOR ERRORS
+
+  print output
